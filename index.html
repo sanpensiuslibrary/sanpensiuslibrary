@@ -23,6 +23,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .foot{max-width:1000px;margin:28px auto 0;padding:16px;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 28px;font-size:13px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--card) 88%,transparent);border-radius:14px 14px 0 0}
 .foot a{color:var(--pri)}.fi{display:flex;align-items:center;gap:10px}
 .chip{padding:4px 11px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink)!important;text-decoration:none;margin:2px 4px 2px 0;display:inline-block}
+.hb{background:rgba(255,255,255,.18);color:inherit;border:1px solid rgba(255,255,255,.5);border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:600}.hb.on{background:var(--acc);color:#2a1a0c;border-color:var(--acc)}
+[id^=s-]{scroll-margin-top:96px}
 #pa{display:none}
 @media print{#app{display:none!important}#pa{display:block!important}body::before{display:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:12mm}}
 h1,h2,h3{font-family:Georgia,"Times New Roman",serif;margin:0}
@@ -76,9 +78,9 @@ const $=i=>document.getElementById(i);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const sha=async s=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)))].map(b=>b.toString(16).padStart(2,"0")).join("");
 const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,70)||"x";
-const API="https://script.google.com/macros/s/AKfycbw2VnmMuUoLwJFh7sPmM40f37540C7YkeiZRZCBw1bScYebjeu06XinEnye1UuF1KaBFQ/exec";
+const API="https://script.google.com/macros/s/AKfycbxtfgk0pQMe6-ORdTHlY4XfPw6gQXYyzLCReJAqteMblh4aSPtDRH8LotEYbkwG013JjA/exec";
 const OK=()=>!API.startsWith("GANTI");
-let T,vis=0,busyN=0,S={ready:0,U:null,tok:"",st:{},gal:[],pend:[],reg:0,rmsg:"",gm:"",lb:null,cont:{},edit:null,det:null,oq:"",of:"all",oc:"",ost:"",os:"judul",tab:"home",kls:null,q:"",f:"",books:[],loans:[],members:[],msg:"",urls:{}};
+let T,vis=0,busyN=0,S={ready:0,U:null,tok:"",st:{},gal:[],pend:[],reg:0,lg:0,rmsg:"",gm:"",lb:null,cont:{},edit:null,det:null,oq:"",of:"all",oc:"",ost:"",os:"judul",tab:"home",kls:null,q:"",f:"",books:[],loans:[],members:[],msg:"",urls:{}};
 function busy(n){busyN+=n;const e=$("ld");if(e)e.hidden=busyN<=0}
 async function api(a,d){busy(1);try{const r=await fetch(API,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({...d,a,t:S.tok})});
  const j=await r.json();if(j.auth){logout();throw new Error(j.err)}if(!j.ok)throw new Error(j.err||"Terjadi kesalahan");return j}finally{busy(-1)}}
@@ -99,11 +101,12 @@ const upd=()=>{clearTimeout(T);T=setTimeout(()=>{if(/INPUT|TEXTAREA|SELECT/.test
 const dw=x=>{const m=String(x).trim().match(/^(\d+)(\.\d+)?$/);return m?m[1].padStart(3,"0")+(m[2]||""):String(x).trim()};
 function row(r){if(r.includes("\t"))return r.split("\t").map(x=>x.trim());const o=[];let c="",q=0;for(const ch of r){if(ch=='"')q=!q;else if(ch==","&&!q){o.push(c.trim());c=""}else c+=ch}o.push(c.trim());return o}
 async function boot(){let t="";try{t=localStorage.getItem("san_t")||""}catch(e){}
- if(t&&OK()){S.tok=t;try{await load()}catch(e){S.tok="";S.U=null}}S.ready=1;render()}
+ if(t&&OK()){S.tok=t;try{await load()}catch(e){S.tok="";S.U=null}}
+ if(!S.U&&OK()){try{await loadPub()}catch(e){}}S.ready=1;render()}
 async function login(e){e.preventDefault();const er=$("err");
  if(!OK()){er.textContent="Alamat Web App belum diisi di berkas index.html (lihat PANDUAN).";return}
  try{const j=await api("login",{no:$("no").value.trim(),pw:$("pw").value});S.tok=j.token;try{localStorage.setItem("san_t",j.token)}catch(x){}S.tab="home";await load()}catch(x){er.textContent=x.message}}
-function logout(){S.tok="";S.U=null;S.books=[];S.loans=[];try{localStorage.removeItem("san_t")}catch(e){}render()}
+function logout(){S.tok="";S.U=null;S.lg=0;S.reg=0;S.books=[];S.loans=[];loadPub().catch(()=>{});try{localStorage.removeItem("san_t")}catch(e){}render()}
 function go(t){if(t!="pengaturan"){S.draft=null;S.dt=null}S.tab=t;if(t!="koleksi")S.kls=null;S.msg="";S.gm="";render();scrollTo(0,0)}
 async function pinjam(id){await act("pinjam",{id})}
 async function perpanjang(id){await act("perpanjang",{id})}
@@ -180,7 +183,7 @@ function vStat(){return vStat2()}
 function regForm(){const ok=S.rmsg.startsWith("Pendaftaran terkirim");return `<div class="login"><form class="card" onsubmit="sendReg(event)" style="text-align:left"><h2 style="margin:0;text-align:center">Pendaftaran Anggota</h2><p class="mute" style="text-align:center;margin:2px 0 0">Terbuka untuk siswa, guru, dan masyarakat umum</p>
  <label for="rn">Nama lengkap</label><input id="rn" required><label for="rk">Kategori anggota</label><select id="rk"><option>Siswa</option><option>Guru / Staf</option><option>Umum</option></select>
  <label for="rs">Asal sekolah / instansi / kelas (opsional)</label><input id="rs" placeholder="mis. SMA Santo Petrus Kanisius kelas X, atau pekerjaan"><label for="ra">Alamat</label><input id="ra" required><label for="rh">No. HP / WhatsApp</label><input id="rh" inputmode="tel" required>
- <div class="${ok?'ok':'err'}" style="margin:10px 0;min-height:18px;font-size:13px">${esc(S.rmsg)}</div><button class="btn" style="width:100%">Kirim pendaftaran</button><button type="button" class="btn alt" style="width:100%;margin-top:8px" onclick="S.reg=0;S.rmsg='';render()">Kembali ke halaman masuk</button></form></div>`}
+ <div class="${ok?'ok':'err'}" style="margin:10px 0;min-height:18px;font-size:13px">${esc(S.rmsg)}</div><button class="btn" style="width:100%">Kirim pendaftaran</button><button type="button" class="btn alt" style="width:100%;margin-top:8px" onclick="S.reg=0;S.rmsg='';render()">Kembali</button></form></div>`}
 async function sendReg(e){e.preventDefault();if(!OK()){S.rmsg="Alamat Web App belum diisi.";render();return}
  try{await api("daftar",{nama:$("rn").value.trim(),kategori:$("rk").value,instansi:$("rs").value.trim(),alamat:$("ra").value.trim(),hp:$("rh").value.trim()});S.rmsg="Pendaftaran terkirim. Admin akan memproses dan memberi nomor anggota."}catch(x){S.rmsg=x.message}render()}
 async function approve(id){try{const j=await api("approve",{id});S.gm=j.msg;await load()}catch(e){alert(e.message)}}
@@ -263,13 +266,30 @@ function vFoot(){const c=C(),ic={instagram:"📸",facebook:"📘",youtube:"▶�
  return `<footer class="foot"><div class="fi"><img src="${LOGO}" alt="" style="width:40px;height:40px"><div><b>SANPENSIUS LIBRARY</b><div class="mute">SMA Katolik Santo Petrus Kanisius Palangka Raya</div></div></div>
  <div class="fi"><span>📍</span><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.lokasi)}" target="_blank" rel="noopener">${esc(c.lokasi)}</a></div>
  <div class="fi" style="flex-wrap:wrap">${so.map(x=>{const u=x[1].startsWith("http://")||x[1].startsWith("https://"),lb=`${ic[x[0].toLowerCase()]||"🔗"} ${esc(x[0]||"Tautan")}`;return u?`<a class="chip" href="${esc(x[1])}" target="_blank" rel="noopener">${lb}</a>`:`<span class="chip">${lb}: ${esc(x[1])}</span>`}).join("")||'<span class="mute">Media sosial belum diisi</span>'}</div></footer>`}
+async function loadPub(){const j=await api("publik",{});S.books=j.books;S.cont=j.cont;try{localStorage.setItem("san_tema",S.cont.tema||"{}")}catch(e){}render()}
+function pcard(b){const s=stock(b);return `<div class="card book">${cover(b)}<div style="flex:1"><h3>${esc(b.judul)}</h3><div class="mute">${esc(b.penulis)}</div><span class="tag">${esc(b.dewey)} · ${DEWEY[cls(b)][1]}</span><div class="${s>0?'ok':'bad'}" style="font-size:13px;margin-top:8px">${s>0?'Tersedia '+s+' eksemplar':'Sedang dipinjam semua'}</div></div></div>`}
+function pKol(){const k=S.kls;return `<div class="grid g3">${DEWEY.map((d,i)=>`<button class="dew ${k==d[0]?'on':''}" onclick="pkol('${d[0]}')"><b>${d[0]}–${+d[0]+99}</b><div class="mute">${d[1]}</div><div class="mute">${S.books.filter(b=>cls(b)==i).length} judul</div></button>`).join("")}</div>${k?`<h3 style="margin:16px 0 8px">${k} · ${DEWEY[k[0]][1]}</h3><div class="grid g2">${S.books.filter(b=>cls(b)==k[0]).map(pcard).join("")||empty("Belum ada buku di kelas ini.")}</div>`:""}`}
+function pkol(k){S.kls=S.kls==k?null:k;$("pkol").innerHTML=pKol()}
+function pKatRes(){const r=fl();return `<p class="mute">${r.length} buku ditemukan${r.length>40?", menampilkan 40 teratas":""}.</p><div class="grid g2">${r.slice(0,40).map(pcard).join("")||empty("Buku tidak ditemukan.")}</div>`}
+function vLanding(){const sc=id=>`document.getElementById('${id}').scrollIntoView({behavior:'smooth'})`;
+ return `<header><div class="bar"><div class="brand"><img src="${LOGO}" alt="Logo"><div><b>SANPENSIUS LIBRARY</b><small>SMA Katolik Santo Petrus Kanisius</small></div></div>
+ <nav>${[["s-sambutan","Sambutan"],["s-visi","Visi & Misi"],["s-koleksi","Koleksi"],["s-katalog","Katalog"]].map(x=>`<button onclick="${sc(x[0])}">${x[1]}</button>`).join("")}</nav>
+ <button class="hb on" onclick="S.lg=1;render();scrollTo(0,0)">Masuk</button><button class="hb" onclick="S.reg=1;render();scrollTo(0,0)">Daftar</button></div></header>
+ <main class="wrap"><div class="hero" style="text-align:center"><img src="${LOGO}" alt="" style="width:120px;height:120px"><h1 style="font-size:30px;letter-spacing:1px;margin-top:6px">SANPENSIUS LIBRARY</h1><p>SMA Katolik Santo Petrus Kanisius Palangka Raya</p>
+ <div class="row" style="justify-content:center;margin:16px 0 0"><button class="btn" style="background:var(--card);color:var(--pri)" onclick="S.lg=1;render();scrollTo(0,0)">Masuk sebagai anggota</button><button class="btn alt" style="color:inherit;border-color:currentColor" onclick="S.reg=1;S.lg=0;render();scrollTo(0,0)">Daftar anggota baru</button></div></div>${vRun()}
+ <div id="s-sambutan">${sec("samb","Sambutan Kepala Sekolah",c=>`<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap"><div style="flex:none">${c.fotoKS?`<img src="${esc(c.fotoKS)}" alt="Foto Kepala Sekolah" style="width:120px;height:150px;object-fit:cover;border-radius:12px;border:3px solid var(--acc)">`:`<div style="width:120px;height:150px;border-radius:12px;border:2px dashed var(--line);display:grid;place-items:center;font-size:44px" title="Foto Kepala Sekolah">🧑‍🏫</div>`}</div><div style="flex:1;min-width:220px"><p style="white-space:pre-line;margin:0 0 8px">${esc(c.samb)}</p><b>${esc(c.nama)}</b></div></div>`)}</div>
+ <div id="s-visi" class="grid g2" style="margin-top:12px">${sec("visi","Visi",c=>`<p style="margin:0">${esc(c.visi)}</p>`)}${sec("misi","Misi",c=>`<ul style="margin:0;padding-left:20px">${lines(c.misi).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}</div>
+ <h2 id="s-koleksi">Koleksi Buku 000–999</h2><p class="mute" style="margin-top:0">Klasifikasi Dewey Decimal. Pilih kelas untuk melihat bukunya.</p><div id="pkol">${pKol()}</div>
+ <h2 id="s-katalog">Katalog Buku</h2><div class="row"><input placeholder="Cari judul, penulis, atau nomor..." value="${esc(S.q)}" oninput="S.q=this.value;$('pkatr').innerHTML=pKatRes()"><select onchange="S.f=this.value;render()"><option value="">Semua kelas</option>${DEWEY.map((d,i)=>`<option value="${i}" ${S.f===String(i)?'selected':''}>${d[0]} · ${d[1]}</option>`).join("")}</select></div><div id="pkatr">${pKatRes()}</div>
+ <div class="card" style="margin-top:18px;text-align:center"><h3>Ingin meminjam buku?</h3><p class="mute">Masuk sebagai anggota, atau daftar gratis sebagai siswa, guru, maupun masyarakat umum.</p><div class="row" style="justify-content:center;margin:0"><button class="btn" onclick="S.lg=1;render();scrollTo(0,0)">Masuk</button><button class="btn alt" onclick="S.reg=1;S.lg=0;render();scrollTo(0,0)">Daftar anggota baru</button></div></div></main>${vFoot()}`}
 function render(){applyTema();const a=$("app");
  if(!S.ready){a.innerHTML=`<div class="login"><div class="card"><img src="${LOGO}" alt="Logo"><p class="mute">Memuat...</p></div></div>`;return}
  if(!S.U&&S.reg){a.innerHTML=regForm();return}
+ if(!S.U&&!S.lg){a.innerHTML=vLanding();return}
  if(!S.U){a.innerHTML=`<div class="login"><form class="card" onsubmit="login(event)"><img src="${LOGO}" alt="Logo SANPENSIUS LIBRARY">
  <h1 style="font-size:22px;letter-spacing:.5px">SANPENSIUS LIBRARY</h1><p class="mute" style="margin:2px 0 0">SMA Katolik Santo Petrus Kanisius Palangka Raya</p>
  <label for="no">Nomor anggota</label><input id="no" autocomplete="username" placeholder="mis. 2024001"><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
- <div class="err" id="err"></div><button class="btn" style="width:100%;margin-top:6px">Masuk</button><button type="button" class="btn alt" style="width:100%;margin-top:8px" onclick="S.reg=1;render()">Daftar anggota baru</button></form></div>`;return}
+ <div class="err" id="err"></div><button class="btn" style="width:100%;margin-top:6px">Masuk</button><button type="button" class="btn alt" style="width:100%;margin-top:8px" onclick="S.reg=1;render()">Daftar anggota baru</button><button type="button" class="btn alt" style="width:100%;margin-top:8px" onclick="S.lg=0;render()">← Kembali ke beranda</button></form></div>`;return}
  const A=isAdm(),T=A?[["home","Dasboard"],["koleksi","Koleksi"],["opac","OPAC"],["pinjam","Peminjaman"],["anggota","Anggota"],["galeri","Galeri"],["kontak","Kontak"],["faq","FAQ"],["pengaturan","Pengaturan"],["profil","Profil"]]:[["home","Beranda"],["koleksi","Koleksi"],["katalog","Katalog"],["opac","OPAC"],["pinjam","Dipinjam"],["kartu","Kartu"],["galeri","Galeri"],["kontak","Kontak"],["faq","FAQ"],["profil","Profil"]];
  const V=A?{home:aHome,koleksi:aKoleksi,opac:vOpac,pinjam:aPinjam,anggota:aAnggota,galeri:vGaleri,kontak:vKontak,faq:vFaq,pengaturan:vPengaturan,profil:vProfil}:{home:vHome,koleksi:vKoleksi,katalog:vKatalog,opac:vOpac,pinjam:vPinjam,kartu:vKartu,galeri:vGaleri,kontak:vKontak,faq:vFaq,profil:vProfil};
  a.innerHTML=`<header><div class="bar"><div class="brand"><img src="${LOGO}" alt="Logo"><div><b>SANPENSIUS LIBRARY</b><small>SMA Katolik Santo Petrus Kanisius</small></div></div>
