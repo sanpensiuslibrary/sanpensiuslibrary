@@ -76,7 +76,7 @@ const $=i=>document.getElementById(i);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const sha=async s=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)))].map(b=>b.toString(16).padStart(2,"0")).join("");
 const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,70)||"x";
-const API="GANTI_DENGAN_URL_WEB_APP";
+const API="https://script.google.com/macros/s/AKfycbxeRbG0I0RqXX7JR6sMQFI1mP5397p-FDLMLhY7zV78hPaYeI8QW2Ejsa4VyOXizsLfcA/exec";
 const OK=()=>!API.startsWith("GANTI");
 let T,vis=0,busyN=0,S={ready:0,U:null,tok:"",st:{},gal:[],pend:[],reg:0,rmsg:"",gm:"",lb:null,cont:{},edit:null,det:null,oq:"",of:"all",oc:"",ost:"",os:"judul",tab:"home",kls:null,q:"",f:"",books:[],loans:[],members:[],msg:"",urls:{}};
 function busy(n){busyN+=n;const e=$("ld");if(e)e.hidden=busyN<=0}
