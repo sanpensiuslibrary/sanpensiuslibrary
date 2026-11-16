@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="id"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SANPENSIUS LIBRARY</title>
@@ -118,7 +119,7 @@ function bookCard(b){const s=stock(b),m=!isAdm()&&mine().some(l=>l.bid==b.id);
  ${isAdm()?"":`<button class="btn" ${s<1||m||mine().length>=3?'disabled':''} onclick="pinjam('${b.id}')">${m?'Sudah dipinjam':'Pinjam'}</button>`}</div></div></div>`}
 const empty=t=>`<div class="card mute">${t}</div>`;
 function vHome(){const L=mine(),late=L.filter(l=>left(l.due)<0).length,nx=[...L].sort((a,b)=>a.due-b.due)[0],nb=nx&&book(nx.bid);
- return `<div class="hero"><h1 style="font-size:26px">Halo, ${esc(S.U.nama.split(" ")[0])} 👋</h1><p>Selamat datang di SANPENSIUS LIBRARY, SMA Katolik Santo Petrus Kanisius Palangka Raya.</p></div>${vRun()}${vInfo()}
+ return `<div class="hero"><h1 style="font-size:26px">Halo, ${esc(S.U.nama)} 👋</h1><p>Selamat datang di SANPENSIUS LIBRARY, SMA Katolik Santo Petrus Kanisius Palangka Raya.</p></div>${vRun()}${vInfo()}
  <div class="grid g3"><div class="card stat"><b>${L.length}/3</b><span>Buku sedang dipinjam</span></div><div class="card stat"><b class="${late?'bad':''}">${late}</b><span>Buku terlambat</span></div><div class="card stat"><b>${S.books.length}</b><span>Judul dalam katalog</span></div></div>
  <h2>Pengembalian terdekat</h2>${nx?`<div class="card book">${cover(nb)}<div><h3>${esc(nb.judul)}</h3><div class="mute">Kembalikan sebelum ${fmt(nx.due)}</div><div class="${left(nx.due)<0?'bad':'ok'}" style="font-weight:600">${left(nx.due)<0?'Terlambat '+-left(nx.due)+' hari':left(nx.due)+' hari lagi'}</div></div></div>`:empty("Tidak ada pinjaman aktif.")}
  <h2>Jelajahi koleksi</h2><div class="grid g3">${DEWEY.slice(0,5).map(d=>`<button class="dew" onclick="S.kls='${d[0]}';go('koleksi')"><b>${d[0]}</b><div class="mute">${d[1]}</div></button>`).join("")}</div>
@@ -141,7 +142,7 @@ function vProfil(){const m=S.U;return `<div class="card prof" style="max-width:4
 const tbl=(h,r)=>`<div class="card wide" style="margin-top:12px"><table><tr>${h.map(x=>`<th>${x}</th>`).join("")}</tr>${r||`<tr><td colspan="${h.length}" class="mute">Belum ada data.</td></tr>`}</table></div>`;
 function aHome(){return aHome0()+vInfo()+vStat()}
 function aHome0(){const od=S.loans.filter(l=>left(l.due)<0);
- return `<div class="hero"><h1 style="font-size:26px">Panel Admin Perpustakaan</h1><p>Kelola koleksi, anggota, dan peminjaman SANPENSIUS LIBRARY.</p></div>${vRun()}
+ return `<div class="hero"><h1 style="font-size:26px">Panel Admin Perpustakaan</h1><p>Halo, ${esc(S.U.nama)}. Kelola koleksi, anggota, dan peminjaman SANPENSIUS LIBRARY.</p></div>${vRun()}
  <div class="grid g3"><div class="card stat"><b>${S.books.length}</b><span>Judul buku</span></div><div class="card stat"><b>${S.books.reduce((a,b)=>a+(+b.stok||0),0)}</b><span>Total eksemplar</span></div><div class="card stat"><b>${S.loans.length}</b><span>Sedang dipinjam</span></div>
  <div class="card stat"><b class="${od.length?'bad':''}">${od.length}</b><span>Terlambat</span></div><div class="card stat"><b>${S.st.anggota||0}</b><span>Anggota</span></div></div>
  <h2>Peminjaman terlambat</h2>${tbl(["Anggota","Buku","Jatuh tempo","Terlambat"],od.map(l=>`<tr><td>${esc(l.nama||l.no)}</td><td>${esc(book(l.bid).judul)}</td><td>${fmt(l.due)}</td><td class="bad">${-left(l.due)} hari</td></tr>`).join(""))}`}
